@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KasirPro HQ · Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+<style>
+:root{--bg:#0b1020;--panel:#121a2e;--panel2:#18223d;--text:#e6e9f5;--muted:#8a94b5;--brand:#6366f1;--brand2:#a855f7;--ok:#10b981;--warn:#f59e0b;--danger:#ef4444;--border:rgba(255,255,255,.08)}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(circle at 10% 0%,rgba(99,102,241,.18),transparent 40%),radial-gradient(circle at 90% 10%,rgba(168,85,247,.14),transparent 40%),var(--bg);background-attachment:fixed;color:var(--text);min-height:100vh}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;background:rgba(11,16,32,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.brand{font-weight:800;font-size:19px;background:linear-gradient(135deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.spacer{flex:1}
+select,input{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:14px;font-family:inherit}
+select:focus,input:focus{outline:none;border-color:var(--brand)}
+.hidden{display:none!important}
+.btn{border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:14px;transition:transform .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.chip{background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:7px 12px;font-size:13px}
+.muted{color:var(--muted);font-size:12px}
+main{padding:18px;max-width:1280px;margin:0 auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:16px}
+.kpi{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:18px;padding:18px;animation:fadeUp .4s ease both;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;inset:auto -30% -60% auto;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.35),transparent 70%)}
+.kpi .ico{font-size:22px}
+.kpi small{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:4px}
+.kpi .v{font-size:26px;font-weight:800;margin-top:6px}
+.kpi .d{font-size:12px;margin-top:4px;color:var(--muted)}
+.up{color:var(--ok)!important}.down{color:var(--danger)!important}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:880px){.grid-2{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:18px;animation:fadeUp .45s ease both;min-width:0}
+.card h3{margin:0 0 12px;font-size:16px}
+.cwrap{position:relative;height:260px}
+.scroll{max-height:320px;overflow:auto}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--border);font-size:14px}
+.row>div{flex:1;min-width:0}
+.row small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row b{white-space:nowrap}
+.warnTxt{color:var(--warn);font-weight:700}
+.tools{display:flex;gap:8px;margin-bottom:10px}
+.tools input{flex:1;min-width:0}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+.empty .big{display:block;font-size:36px;margin-bottom:6px}
+.skel{background:linear-gradient(90deg,var(--panel2) 25%,rgba(255,255,255,.06) 50%,var(--panel2) 75%);background-size:400px 100%;animation:shimmer 1.2s infinite linear;border-radius:10px;height:14px;margin:8px 0}
+.overlay{position:fixed;inset:0;background:rgba(3,7,18,.7);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+.overlay.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:22px;padding:26px;width:100%;max-width:400px;animation:pop .3s ease both;box-shadow:0 30px 60px -20px rgba(0,0,0,.6)}
+.modal h2{margin:0 0 6px;font-size:20px}
+.wk{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.wk button{border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:16px;border-radius:14px;cursor:pointer;font-weight:700;font-size:15px;transition:transform .15s}
+.wk button:hover{transform:translateY(-2px);border-color:var(--brand)}
+.dots{font-size:30px;letter-spacing:10px;text-align:center;color:var(--brand);margin:16px 0}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad button{border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:16px;border-radius:16px;cursor:pointer;font-weight:700;font-size:20px}
+.pad button:active{transform:scale(.92)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(17,24,39,.95);color:#fff;padding:12px 18px;border-radius:12px;z-index:30;display:none;font-size:14px;max-width:90vw;animation:pop .25s ease both}
+.toast.show{display:block}
+.pill{background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:3px 9px;font-size:12px;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div id="loginOverlay" class="overlay show"><div class="modal" id="loginBody"></div></div>
+
+<div id="app" class="hidden">
+  <header class="top">
+    <div class="brand">📊 KasirPro HQ</div>
+    <div class="spacer"></div>
+    <select id="rangeSel" onchange="onRange()">
+      <option value="today">Hari ini</option>
+      <option value="7" selected>7 hari</option>
+      <option value="30">30 hari</option>
+      <option value="90">90 hari</option>
+      <option value="custom">Tarikh khas</option>
+    </select>
+    <input type="date" id="dFrom" class="hidden" onchange="load()">
+    <input type="date" id="dTo" class="hidden" onchange="load()">
+    <button class="btn ghost sm" title="Muat semula" onclick="load()">🔄</button>
+    <span id="updated" class="muted"></span>
+    <span id="who" class="chip"></span>
+    <button class="btn ghost sm" title="Keluar" onclick="logout()">🚪</button>
+  </header>
+
+  <main>
+    <div class="kpis">
+      <div class="kpi"><span class="ico">💰</span><small>Jualan</small><div class="v" id="kSales">RM 0.00</div><div class="d" id="kSalesD"></div></div>
+      <div class="kpi"><span class="ico">🧾</span><small>Transaksi</small><div class="v" id="kCount">0</div><div class="d" id="kCountD"></div></div>
+      <div class="kpi"><span class="ico">📈</span><small>Purata transaksi</small><div class="v" id="kAvg">RM 0.00</div><div class="d" id="kAvgD"></div></div>
+      <div class="kpi"><span class="ico">👥</span><small>Pelanggan baru</small><div class="v" id="kNew">0</div></div>
+      <div class="kpi"><span class="ico">⭐</span><small>Mata dikeluarkan</small><div class="v" id="kEarn">+0</div><div class="d" id="kRedeemD"></div></div>
+      <div class="kpi"><span class="ico">⚠️</span><small>Stok rendah</small><div class="v" id="kLow">0</div><div class="d" id="kStockVal"></div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card"><h3>📈 Jualan harian</h3><div class="cwrap"><canvas id="cDaily"></canvas></div></div>
+      <div class="card"><h3>💳 Kaedah bayaran</h3><div class="cwrap"><canvas id="cPay"></canvas></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><h3>🏆 Produk terlaris (RM)</h3><div class="cwrap"><canvas id="cProd"></canvas></div></div>
+      <div class="card"><h3>⏰ Waktu sibuk</h3><div class="cwrap"><canvas id="cHour"></canvas></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><h3>👥 Prestasi pekerja</h3><div class="cwrap"><canvas id="cWorker"></canvas></div></div>
+      <div class="card"><h3>⭐ Pelanggan teratas</h3><div id="topCust" class="scroll"></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><h3>⚠️ Stok rendah</h3><div id="lowList" class="scroll"></div></div>
+      <div class="card">
+        <h3>🧾 Transaksi terkini</h3>
+        <div class="tools">
+          <input id="txQ" placeholder="🔍 Cari invois, pekerja, pelanggan..." oninput="renderTx()">
+          <button class="btn ghost sm" onclick="exportCSV()">📥 CSV</button>
+        </div>
+        <div id="txList" class="scroll"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://jfhjvqqeznaylmfyzurf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmaGp2cXFlem5heWxtZnl6dXJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQwOTA2MTIsImV4cCI6MjEwOTY2NjYxMn0.UwxZuPcxQH0z__XFGxOTK-MnQzpGHGexR4p7Wjl70Ho';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const H = { worker:null, workers:[], pinWorker:null, pin:'', data:null, cur:[], charts:{}, timer:null };
+const DAY = 864e5;
+const MED = ['🥇','🥈','🥉'];
+const CAT_ICON = {'Refill':'♻️','Penjagaan Diri':'🧼','Dapur':'🍳','Beg & Bekas':'👜','Makanan':'🍜','Minuman':'🥤','Snek':'🍪','Mainan':'🧸'};
+const catIcon = c => CAT_ICON[c] || '📦';
+const PAY_LABEL = { tunai:'Tunai', kad:'Kad', qr:'DuitNow QR' };
+
+const rm = n => 'RM ' + Number(n || 0).toLocaleString('ms-MY', { minimumFractionDigits:2, maximumFractionDigits:2 });
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const empty = (ic, t) => `<div class="empty"><span class="big">${ic}</span>${t}</div>`;
+const medal = i => MED[i] || '🏅';
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const ymd = d => { const x = new Date(d); return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0'); };
+const inR = (d, a, b) => { const t = new Date(d).getTime(); return t >= a.getTime() && t <= b.getTime(); };
+
+function toast(msg){
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(window._tt); window._tt = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ---------- LOG MASUK (PEMILIK SAHAJA) ---------- */
+async function showLogin(){
+  H.pinWorker = null; H.pin = '';
+  document.getElementById('loginOverlay').classList.add('show');
+  const { data, error } = await sb.rpc('list_workers');
+  if(error){ toast('Gagal sambung: ' + error.message); return; }
+  H.workers = (data || []).filter(w => w.role === 'Pemilik');
+  renderLogin();
+}
+function renderLogin(){
+  const box = document.getElementById('loginBody');
+  if(!H.pinWorker){
+    box.innerHTML = `<h2>📊 HQ · Log masuk</h2><div class="muted">Hanya akaun Pemilik boleh masuk.</div>
+      <div class="wk">${H.workers.length ? H.workers.map(w => `<button onclick="pickW(${w.id})">👑<br>${esc(w.name)}</button>`).join('') : '<div class="muted">Tiada akaun Pemilik</div>'}</div>`;
+  } else {
+    const dots = '●'.repeat(H.pin.length) + '○'.repeat(4 - H.pin.length);
+    box.innerHTML = `<h2>🔐 ${esc(H.pinWorker.name)}</h2><div class="dots">${dots}</div>
+      <div class="pad">
+        ${[1,2,3,4,5,6,7,8,9].map(n => `<button onclick="pk('${n}')">${n}</button>`).join('')}
+        <button onclick="pb()">⌫</button><button onclick="pk('0')">0</button><button onclick="pr()">↩️</button>
+      </div>`;
+  }
+}
+function pickW(id){ H.pinWorker = H.workers.find(w => w.id === id) || null; H.pin = ''; renderLogin(); }
+function pr(){ H.pinWorker = null; H.pin = ''; renderLogin(); }
+function pb(){ H.pin = H.pin.slice(0,-1); renderLogin(); }
+async function pk(d){
+  if(!H.pinWorker || H.pin.length >= 4) return;
+  H.pin += d; renderLogin();
+  if(H.pin.length < 4) return;
+  const { data, error } = await sb.rpc('verify_pin', { p_worker_id: H.pinWorker.id, p_pin: H.pin });
+  if(error || !data || !data.length){ toast('❌ PIN salah'); H.pin = ''; renderLogin(); return; }
+  if(data[0].role !== 'Pemilik'){ toast('Hanya Pemilik boleh masuk HQ'); H.pin = ''; renderLogin(); return; }
+  H.worker = data[0];
+  document.getElementById('loginOverlay').classList.remove('show');
+  start();
+}
+document.addEventListener('keydown', e => {
+  if(!document.getElementById('loginOverlay').classList.contains('show') || !H.pinWorker) return;
+  if(e.key >= '0' && e.key <= '9'){ e.preventDefault(); pk(e.key); }
+  else if(e.key === 'Backspace'){ e.preventDefault(); pb(); }
+  else if(e.key === 'Escape'){ e.preventDefault(); pr(); }
+});
+function start(){
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('who').textContent = '👑 ' + H.worker.name;
+  load();
+  clearInterval(H.timer);
+  H.timer = setInterval(load, 60000);
+}
+function logout(){
+  clearInterval(H.timer);
+  H.worker = null; H.data = null;
+  document.getElementById('app').classList.add('hidden');
+  showLogin();
+}
+
+/* ---------- JULAT TARIKH ---------- */
+function onRange(){
+  const v = document.getElementById('rangeSel').value;
+  const isCustom = v === 'custom';
+  document.getElementById('dFrom').classList.toggle('hidden', !isCustom);
+  document.getElementById('dTo').classList.toggle('hidden', !isCustom);
+  if(!isCustom) load();
+}
+function computeRange(){
+  const now = new Date();
+  const v = document.getElementById('rangeSel').value;
+  let from, to;
+  if(v === 'custom'){
+    from = new Date(document.getElementById('dFrom').value + 'T00:00:00');
+    to = new Date(document.getElementById('dTo').value + 'T23:59:59');
+  } else if(v === 'today'){
+    from = startOfDay(now); to = now;
+  } else {
+    const n = parseInt(v, 10);
+    from = startOfDay(new Date(now.getTime() - (n - 1) * DAY)); to = now;
+  }
+  const span = to - from;
+  const prevTo = new Date(from.getTime() - 1);
+  const prevFrom = new Date(from.getTime() - span - 1);
+  return { from, to, prevFrom, prevTo };
+}
+
+/* ---------- DATA ---------- */
+async function fetchAll(table, select, build){
+  let out = [], from = 0; const step = 1000;
+  while(true){
+    let q = sb.from(table).select(select).range(from, from + step - 1);
+    q = build(q);
+    const { data, error } = await q;
+    if(error) throw error;
+    out = out.concat(data || []);
+    if((data || []).length < step) break;
+    from += step;
+  }
+  return out;
+}
+async function load(){
+  const r = computeRange();
+  document.getElementById('updated').textContent = 'Memuatkan...';
+  try{
+    const [sales, products, customers] = await Promise.all([
+      fetchAll('sales', '*, sale_items(*)', q => q.gte('created_at', r.prevFrom.toISOString()).lte('created_at', r.to.toISOString()).order('id')),
+      fetchAll('products', '*', q => q.order('id')),
+      fetchAll('customers', '*', q => q.order('id'))
+    ]);
+    H.data = { r, sales, products, customers };
+    render();
+    document.getElementById('updated').textContent = 'Dikemas kini ' + new Date().toLocaleTimeString('ms-MY');
+  }catch(e){
+    toast('Gagal muat data: ' + (e.message || e));
+    document.getElementById('updated').textContent = 'Gagal dimuat';
+  }
+}
+
+/* ---------- PENGIRAAN ---------- */
+function sumry(list){
+  const total = list.reduce((a,s) => a + Number(s.total), 0);
+  return {
+    total, count: list.length, avg: list.length ? total / list.length : 0,
+    earned: list.reduce((a,s) => a + (s.points_earned || 0), 0),
+    redeemed: list.reduce((a,s) => a + (s.points_redeemed || 0), 0)
+  };
+}
+function delta(cur, prev){
+  if(!prev) return cur ? { txt:'🆕 baru', cls:'up' } : { txt:'—', cls:'' };
+  const p = (cur - prev) / prev * 100;
+  return { txt:(p >= 0 ? '▲ ' : '▼ ') + Math.abs(p).toFixed(1) + '% berbanding tempoh sebelum', cls: p >= 0 ? 'up' : 'down' };
+}
+function setK(id, value, d){
+  document.getElementById(id).textContent = value;
+  if(d){ const el = document.getElementById(id + 'D'); el.textContent = d.txt; el.className = 'd ' + d.cls; }
+}
+function mkChart(id, cfg){
+  if(H.charts[id]) H.charts[id].destroy();
+  cfg.options = { responsive:true, maintainAspectRatio:false, ...(cfg.options || {}) };
+  H.charts[id] = new Chart(document.getElementById(id), cfg);
+}
+
+/* ---------- RENDER ---------- */
+function render(){
+  const { r, sales, products, customers } = H.data;
+  const cur = sales.filter(s => inR(s.created_at, r.from, r.to));
+  const prev = sales.filter(s => inR(s.created_at, r.prevFrom, r.prevTo));
+  const a = sumry(cur), b = sumry(prev);
+  H.cur = cur.slice().sort((x,y) => new Date(y.created_at) - new Date(x.created_at));
+
+  setK('kSales', rm(a.total), delta(a.total, b.total));
+  setK('kCount', a.count, delta(a.count, b.count));
+  setK('kAvg', rm(a.avg), delta(a.avg, b.avg));
+  document.getElementById('kNew').textContent = customers.filter(c => inR(c.created_at, r.from, r.to)).length;
+  document.getElementById('kEarn').textContent = '+' + a.earned;
+  document.getElementById('kRedeemD').textContent = 'Ditebus: -' + a.redeemed + ' mata';
+
+  const low = products.filter(p => p.stock <= 5).sort((x,y) => x.stock - y.stock);
+  document.getElementById('kLow').textContent = low.length;
+  document.getElementById('kStockVal').textContent = 'Nilai stok: ' + rm(products.reduce((x,p) => x + Number(p.price) * p.stock, 0));
+
+  /* Jualan harian */
+  const days = [];
+  let d = startOfDay(r.from);
+  while(d <= r.to && days.length < 120){ days.push(new Date(d)); d = new Date(d.getTime() + DAY); }
+  const dayTot = {};
+  cur.forEach(s => { const k = ymd(s.created_at); dayTot[k] = (dayTot[k] || 0) + Number(s.total); });
+  mkChart('cDaily', {
+    type:'bar',
+    data:{ labels: days.map(x => x.toLocaleDateString('ms-MY', { day:'2-digit', month:'short' })),
+      datasets:[{ label:'Jualan (RM)', data: days.map(x => dayTot[ymd(x)] || 0), backgroundColor:'rgba(99,102,241,.8)', borderRadius:8 }] },
+    options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, grid:{ color:'rgba(255,255,255,.05)' } }, x:{ grid:{ display:false } } } }
+  });
+
+  /* Kaedah bayaran */
+  const pay = {};
+  cur.forEach(s => { pay[s.payment_method] = (pay[s.payment_method] || 0) + Number(s.total); });
+  mkChart('cPay', {
+    type:'doughnut',
+    data:{ labels: Object.keys(pay).map(k => PAY_LABEL[k] || k),
+      datasets:[{ data: Object.values(pay), backgroundColor:['#6366f1','#a855f7','#10b981','#f59e0b','#ef4444'], borderWidth:0 }] },
+    options:{ cutout:'62%', plugins:{ legend:{ position:'bottom' } } }
+  });
+
+  /* Produk terlaris */
+  const prodRev = {};
+  cur.forEach(s => (s.sale_items || []).forEach(i => {
+    const o = prodRev[i.name] || { rev:0, qty:0 };
+    o.rev += Number(i.price) * i.qty; o.qty += i.qty; prodRev[i.name] = o;
+  }));
+  const topP = Object.entries(prodRev).sort((x,y) => y[1].rev - x[1].rev).slice(0,8);
+  mkChart('cProd', {
+    type:'bar',
+    data:{ labels: topP.map(x => x[0]), datasets:[{ label:'RM', data: topP.map(x => x[1].rev), backgroundColor:'rgba(168,85,247,.8)', borderRadius:8 }] },
+    options:{ indexAxis:'y', plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true, grid:{ color:'rgba(255,255,255,.05)' } }, y:{ grid:{ display:false } } } }
+  });
+
+  /* Waktu sibuk */
+  const hrs = Array(24).fill(0);
+  cur.forEach(s => hrs[new Date(s.created_at).getHours()]++);
+  mkChart('cHour', {
+    type:'line',
+    data:{ labels: hrs.map((_,i) => i + ':00'), datasets:[{ label:'Transaksi', data: hrs, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.2)', fill:true, tension:.35, pointRadius:2 }] },
+    options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 }, grid:{ color:'rgba(255,255,255,.05)' } }, x:{ grid:{ display:false } } } }
+  });
+
+  /* Prestasi pekerja */
+  const wk = {};
+  cur.forEach(s => { const k = s.worker_name || '-'; wk[k] = (wk[k] || 0) + Number(s.total); });
+  mkChart('cWorker', {
+    type:'bar',
+    data:{ labels: Object.keys(wk), datasets:[{ label:'Jualan (RM)', data: Object.values(wk), backgroundColor:'rgba(245,158,11,.85)', borderRadius:8 }] },
+    options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, grid:{ color:'rgba(255,255,255,.05)' } }, x:{ grid:{ display:false } } } }
+  });
+
+  /* Pelanggan teratas */
+  const cu = {};
+  cur.forEach(s => {
+    if(!s.customer_id) return;
+    const o = cu[s.customer_id] || { name:s.customer_name, total:0, n:0 };
+    o.total += Number(s.total); o.n++; cu[s.customer_id] = o;
+  });
+  const cmap = Object.fromEntries(customers.map(c => [c.id, c]));
+  const topC = Object.entries(cu).sort((x,y) => y[1].total - x[1].total).slice(0,8);
+  document.getElementById('topCust').innerHTML = topC.length
+    ? topC.map(([id,o],i) => `<div class="row"><div><b>${medal(i)} ${esc(o.name)}</b><small>${o.n} transaksi · ⭐ ${cmap[id] ? cmap[id].points : 0} mata semasa</small></div><b>${rm(o.total)}</b></div>`).join('')
+    : empty('🤷', 'Tiada transaksi pelanggan');
+
+  /* Stok rendah */
+  document.getElementById('lowList').innerHTML = low.length
+    ? low.map(p => `<div class="row"><div><b>${catIcon(p.category)} ${esc(p.name)}</b><small>${esc(p.category)}</small></div><span class="warnTxt">Tinggal ${p.stock}</span><span class="pill">${rm(p.price)}</span></div>`).join('')
+    : empty('✅', 'Semua stok mencukupi');
+
+  renderTx();
+}
+
+function renderTx(){
+  const q = (document.getElementById('txQ').value || '').trim().toLowerCase();
+  const list = (H.cur || []).filter(s => !q || [s.invoice_no, s.worker_name, s.customer_name, s.payment_method]
+    .some(v => String(v || '').toLowerCase().includes(q))).slice(0,100);
+  document.getElementById('txList').innerHTML = list.length
+    ? list.map(s => `<div class="row"><div><b>${esc(s.invoice_no)}</b><small>${new Date(s.created_at).toLocaleString('ms-MY')} · ${esc(s.worker_name || '-')}${s.customer_name ? ' · 👤 ' + esc(s.customer_name) : ''}</small></div><span class="pill">${esc(PAY_LABEL[s.payment_method] || s.payment_method)}</span><b>${rm(s.total)}</b></div>`).join('')
+    : empty('🧾', 'Tiada transaksi dalam tempoh ini');
+}
+
+function exportCSV(){
+  if(!H.cur || !H.cur.length){ toast('Tiada data untuk dieksport'); return; }
+  const rows = [['No','Tarikh','Pekerja','Pelanggan','Kaedah','Subtotal','Diskaun','Cukai','Jumlah','Mata diperoleh','Mata ditebus']]
+    .concat(H.cur.map(s => [
+      s.invoice_no, new Date(s.created_at).toLocaleString('ms-MY'), s.worker_name || '', s.customer_name || '',
+      PAY_LABEL[s.payment_method] || s.payment_method, Number(s.subtotal).toFixed(2), Number(s.discount || 0).toFixed(2),
+      Number(s.tax).toFixed(2), Number(s.total).toFixed(2), s.points_earned || 0, s.points_redeemed || 0
+    ]));
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type:'text/csv;charset=utf-8' }));
+  a.download = 'hq-jualan-' + ymd(new Date()) + '.csv';
+  a.click();
+  toast('📥 CSV dimuat turun');
+}
+
+/* ---------- MULA ---------- */
+(function init(){
+  Chart.defaults.color = '#8a94b5';
+  Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  Chart.defaults.borderColor = 'rgba(255,255,255,.06)';
+  const now = new Date();
+  document.getElementById('dTo').value = ymd(now);
+  document.getElementById('dFrom').value = ymd(new Date(now.getTime() - 6 * DAY));
+  showLogin();
+})();
+</script>
+</body>
+</html>
